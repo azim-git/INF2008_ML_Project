@@ -1,0 +1,8 @@
+# Ignore the dataset image files.
+datasets/training_data/*
+datasets/test_data/*
+datasets.zip
+
+# Leave the directories.
+!datasets/training_data/
+!datasets/test_data/
