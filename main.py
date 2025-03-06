@@ -285,8 +285,8 @@ def main():
     X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=0.3, shuffle=False)
 
 
-    # loaded_models = load_models_and_predict(X_train, X_test, y_train, y_test)
-    loaded_models = load_models()
+    loaded_models = load_models_and_predict(X_train, X_test, y_train, y_test)
+    # loaded_models = load_models()
 
     # Predict single digit
     single_image_path = "datasets/training_data/digits/7/7_18140.jpg"  # Replace with your image path

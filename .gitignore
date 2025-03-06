@@ -3,6 +3,14 @@ datasets/training_data/*
 datasets/test_data/*
 datasets.zip
 
+# Ignore large files
+csv/*
+models/*
+
+# Explicitly ignore all files and folders within csv and models
+csv/**/*
+models/**/*
+
 # Leave the directories.
 !datasets/training_data/
 !datasets/test_data/
