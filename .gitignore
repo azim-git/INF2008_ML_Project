@@ -2,6 +2,7 @@
 datasets/training_data/*
 datasets/test_data/*
 datasets.zip
+MNIST
 
 # Ignore large files
 csv/*

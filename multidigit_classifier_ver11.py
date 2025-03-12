@@ -5,6 +5,7 @@ import pickle
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
 
 def preprocess_single_digit(image: Image.Image) -> np.ndarray:
     img = image.resize((28, 28)).convert('L')
@@ -22,13 +23,12 @@ def extract_digits_from_image(image_path):
     blurred = cv2.GaussianBlur(img, (5, 5), 0)
     thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
     kernel = np.ones((3, 3), np.uint8)
-    eroded = cv2.erode(thresh, kernel, iterations=1)  # Erosion to separate digits
-    dilated = cv2.dilate(thresh, kernel, iterations=2)
+    processed_img = cv2.dilate(thresh, kernel, iterations=2)  # Improved dilation only
 
-    contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    digit_boxes, decimal_point_boxes = [], []
+    contours, _ = cv2.findContours(processed_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     all_boxes = [cv2.boundingRect(cnt) for cnt in contours]
-    all_boxes = split_wide_boxes(img, all_boxes)  # New step to split wide boxes
+    all_boxes = split_wide_boxes(img, all_boxes)
+
     decimal_point_boxes, digit_boxes = refine_decimal_point_detection(all_boxes)
     digit_boxes = merge_and_adjust_overlapping_boxes(digit_boxes)
     digit_boxes.sort()
@@ -36,20 +36,23 @@ def extract_digits_from_image(image_path):
 
     decimal_point_boxes = filter_stray_decimal_points(decimal_point_boxes, digit_boxes)
 
-    digit_images = [Image.fromarray(extract_digit_with_padding_and_squaring(img, x, y, w, h)) 
+    digit_images = [Image.fromarray(extract_digit_with_padding_and_squaring(img, x, y, w, h))
                     for x, y, w, h in digit_boxes]
     return digit_images, digit_boxes, decimal_point_boxes, img
 
 def split_wide_boxes(img, boxes):
-    """Splits overly wide bounding boxes into two if necessary."""
     new_boxes = []
     for x, y, w, h in boxes:
         aspect_ratio = w / h
-        if aspect_ratio > 1.5:  # Likely contains two digits
+        if aspect_ratio > 1.5:  # Likely two digits
             vertical_projection = np.sum(img[y:y+h, x:x+w], axis=0)
-            split_index = np.argmin(vertical_projection[w//4:3*w//4]) + w//4
-            new_boxes.append((x, y, split_index, h))
-            new_boxes.append((x + split_index, y, w - split_index, h))
+            peaks, _ = find_peaks(-vertical_projection, distance=w//4)
+            if len(peaks) > 0:
+                split_index = peaks[0]
+                new_boxes.append((x, y, split_index, h))
+                new_boxes.append((x + split_index, y, w - split_index, h))
+            else:
+                new_boxes.append((x, y, w, h))
         else:
             new_boxes.append((x, y, w, h))
     return new_boxes
@@ -115,20 +118,28 @@ def combine_predictions(predictions, digit_boxes, decimal_point_boxes):
 def merge_and_adjust_overlapping_boxes(boxes):
     if len(boxes) <= 1:
         return boxes
-    boxes.sort()
-    merged_boxes, used = [], [False] * len(boxes)
+
+    boxes = sorted(boxes, key=lambda b: b[0])
+    merged_boxes = []
+
     for i in range(len(boxes)):
-        if used[i]:
+        if i in merged_boxes:
             continue
+
         x1, y1, w1, h1 = boxes[i]
         for j in range(i + 1, len(boxes)):
-            if used[j]:
-                continue
             x2, y2, w2, h2 = boxes[j]
-            if max(x1, x2) < min(x1 + w1, x2 + w2) and max(y1, y2) < min(y1 + h1, y2 + h2):
-                used[j] = True
-        merged_boxes.append(boxes[i])
-    return merged_boxes
+
+            if x2 < x1 + w1 and x2 + w2 > x1:  # Overlapping horizontally
+                new_x = min(x1, x2)
+                new_y = min(y1, y2)
+                new_w = max(x1 + w1, x2 + w2) - new_x
+                new_h = max(y1 + h1, y2 + h2) - new_y
+                boxes[i] = (new_x, new_y, new_w, new_h)
+                merged_boxes.append(j)
+
+        merged_boxes.append(i)
+    return [boxes[i] for i in range(len(boxes)) if i in merged_boxes]
 
 def visualize_results(image, digit_boxes, decimal_point_boxes, predictions):
     plt.figure(figsize=(10, 5))
@@ -145,14 +156,14 @@ def visualize_results(image, digit_boxes, decimal_point_boxes, predictions):
 def main():
     model_path = "models/k_nearest_neighbors_model.pkl"
     image_paths = [
-        # "curated_dataset/hand-drawn/4-36.png",  
+        "curated_dataset/hand-drawn/4-36.png",  
         # "curated_dataset/hand-drawn/4-36-5.png",
         # "curated_dataset/hand-drawn/-89.png",
-        "curated_dataset/hand-drawn/666.png",
+        # "curated_dataset/hand-drawn/666.png",
         # "curated_dataset/hand-drawn/2341.png",
-        # "curated_dataset/hand-drawn/55900.png",
+        "curated_dataset/hand-drawn/55900.png",
         "curated_dataset/multi_digit_package/0000123.png",
-        "curated_dataset/multi_digit_package/9184875.png",
+        # "curated_dataset/multi_digit_package/9184875.png",
     ] 
     model = pickle.load(open(model_path, "rb"))
     for image_path in image_paths:
