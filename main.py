@@ -23,11 +23,11 @@ def preprocess_training_data_to_df(path):
         for image in glob.iglob(entry+'/*.jpg'):
             try:
                 img = Image.open(image)
-                img = img.resize((8, 8))
+                img = img.resize((28, 28))
                 img = img.convert('L')  # Convert to greyscale
                 img = np.array(img)
                 img = 255 - img  # Invert colors
-                img = img / 10  # Scaling
+                img = img / 255  # Scaling
                 img = img.ravel()  # Flatten image
                 img = img.tolist()
                 data.append(img)
@@ -108,11 +108,11 @@ def preprocess_single_image(image_path):
     """
     try:
         img = Image.open(image_path)
-        img = img.resize((8, 8))
+        img = img.resize((28, 28))
         img = img.convert('L')
         img = np.array(img)
         img = 255 - img
-        img = img / 10
+        img = img / 255
         img = img.ravel()
         return img
     except Exception as e:
@@ -154,10 +154,10 @@ def load_models():
     from xgboost import XGBClassifier
 
     models = {
-        "svm": {
-            "file": "models/svm_model.pkl",
-            "class": svm.SVC(kernel='rbf', gamma=0.001, C=5),
-        },
+        # "svm": {
+        #     "file": "models/svm_model.pkl",
+        #     "class": svm.SVC(kernel='rbf', gamma=0.001, C=5),
+        # },
         "gaussian_naive_bayes": {
             "file": "models/gaussian_naive_bayes_model.pkl",
             "class": GaussianNB(),
@@ -168,16 +168,16 @@ def load_models():
         },
         "random_forest": {
             "file": "models/random_forest_model.pkl",
-            "class": RandomForestClassifier(max_depth=2, random_state=0),
+            "class": RandomForestClassifier(max_depth=10, random_state=0),
         },
         "k_nearest_neighbors": {
             "file": "models/k_nearest_neighbors_model.pkl",
-            "class": KNeighborsClassifier(n_neighbors=5, metric='euclidean'),
+            "class": KNeighborsClassifier(n_neighbors=7, metric='euclidean'),
         },
-        "stochastic_gradient_decent": {
-            "file": "models/stochastic_gradient_decent_model.pkl",
-            "class": SGDClassifier(loss="hinge", penalty="l2", max_iter=5),
-        },
+        # "stochastic_gradient_decent": {
+        #     "file": "models/stochastic_gradient_decent_model.pkl",
+        #     "class": SGDClassifier(loss="hinge", penalty="l2", max_iter=100),
+        # },
         "xgboost": {
             "file": "models/xgboost_model.pkl",
             "class": XGBClassifier(),
@@ -206,10 +206,10 @@ def load_models_and_predict(X_train, X_test, y_train, y_test):
     from xgboost import XGBClassifier
 
     models = {
-        "svm": {
-            "file": "models/svm_model.pkl",
-            "class": svm.SVC(kernel='rbf', gamma=0.001, C=5),
-        },
+        # "svm": {
+        #     "file": "models/svm_model.pkl",
+        #     "class": svm.SVC(kernel='rbf', gamma=0.001, C=5),
+        # },
         "gaussian_naive_bayes": {
             "file": "models/gaussian_naive_bayes_model.pkl",
             "class": GaussianNB(),
@@ -226,10 +226,10 @@ def load_models_and_predict(X_train, X_test, y_train, y_test):
             "file": "models/k_nearest_neighbors_model.pkl",
             "class": KNeighborsClassifier(n_neighbors=5, metric='euclidean'),
         },
-        "stochastic_gradient_decent": {
-            "file": "models/stochastic_gradient_decent_model.pkl",
-            "class": SGDClassifier(loss="hinge", penalty="l2", max_iter=5),
-        },
+        # "stochastic_gradient_decent": {
+        #     "file": "models/stochastic_gradient_decent_model.pkl",
+        #     "class": SGDClassifier(loss="hinge", penalty="l2", max_iter=5),
+        # },
         "xgboost": {
             "file": "models/xgboost_model.pkl",
             "class": XGBClassifier(),
@@ -274,6 +274,8 @@ def load_preprocessed_data():
 def main():
     pre = load_preprocessed_data()
     # test_data = preprocess_test_data_to_df("datasets/test_data/multi_digit_package")
+    
+    # pre = preprocess_training_data_to_df("digits/*")
 
     # For training
     data = pre.iloc[:,:-1]
@@ -289,7 +291,7 @@ def main():
     # loaded_models = load_models()
 
     # Predict single digit
-    single_image_path = "datasets/training_data/digits/7/7_18140.jpg"  # Replace with your image path
+    single_image_path = "digits/7/7_18140.jpg"  # Replace with your image path
     if os.path.exists(single_image_path):
       print(f"\nPredicting digit in: {single_image_path}")
       predict_single_digit(single_image_path, loaded_models)

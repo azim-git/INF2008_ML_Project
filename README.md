@@ -1,6 +1,12 @@
 # ML_Project
-## ver3:
+## ver1:
+Gaussian Naive Bayes Accuracy: 48.84362401867176
+Decision Tree Accuracy: 98.61729966758611
+Random Forest Accuracy: 51.86717589645661
+K Nearest Neighbors Accuracy: 93.71596293938751
+Xgboost Accuracy: 99.83379305467147
 
+## ver3:
 SVM:
 Best hyperparameters for svm: {'C': 10, 'gamma': 0.1, 'kernel': 'rbf'}
 svm Training Accuracy: 96.14%
